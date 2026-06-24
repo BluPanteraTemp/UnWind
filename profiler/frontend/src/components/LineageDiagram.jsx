@@ -14,8 +14,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import { Database, Eye, EyeOff, FileInput, GitBranch, LocateFixed, Table2, X } from "lucide-react";
 
-const NODE_WIDTH = 260;
-const LAYER_GAP = 360;
+const NODE_WIDTH = 400;
+const LAYER_GAP = 550;
 const ROW_GAP = 112;
 const HEADER_Y = -92;
 
@@ -24,13 +24,27 @@ function nodeId(type, value) {
 }
 
 function getNodeColor(type, subtype) {
-  if (type === "query") return "#2563eb";
-  if (type === "output") return "#d97706";
-  if (subtype && subtype !== "workbook-table") return "#7c3aed";
-  return "#059669";
+  if (type === "query") return "#3b65c7";
+  if (type === "output") return "#c17a22";
+  if (subtype && subtype !== "workbook-table") return "#8060b8";
+  return "#2f946f";
 }
 
-function truncate(value, max = 36) {
+function getNodeSoftColor(type, subtype) {
+  if (type === "query") return "#eef4ff";
+  if (type === "output") return "#fff6e8";
+  if (subtype && subtype !== "workbook-table") return "#f4f0ff";
+  return "#edf8f3";
+}
+
+function getMiniMapColor(type, subtype) {
+  if (type === "query") return "#d6e3ff";
+  if (type === "output") return "#ffe0b8";
+  if (subtype && subtype !== "workbook-table") return "#e4d9ff";
+  return "#d1efe1";
+}
+
+function truncate(value, max = 52) {
   const text = String(value || "");
   return text.length > max ? `${text.slice(0, max - 1)}...` : text;
 }
@@ -43,38 +57,39 @@ function hasWorkbookMirrorSource(query) {
 
 function GraphNode({ data }) {
   const color = getNodeColor(data.type, data.subtype);
+  const softColor = getNodeSoftColor(data.type, data.subtype);
   const Icon = data.type === "source" ? FileInput : data.type === "output" ? Table2 : GitBranch;
   const muted = data.muted;
 
   return (
-    <div className={`relative min-h-[78px] rounded-xl border bg-white shadow-sm transition ${muted ? "opacity-25" : "opacity-100"}`}>
-      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-white" style={{ background: color }} />
-      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white" style={{ background: color }} />
+    <div className={`relative min-h-[86px] rounded-xl border bg-white shadow-sm transition hover:shadow-md ${muted ? "opacity-30" : "opacity-100"}`}>
+      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-2 !border-white" style={{ background: color }} />
+      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-2 !border-white" style={{ background: color }} />
 
-      <div className="flex gap-3 p-3">
+      <div className="flex gap-3 px-3.5 py-3">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
-          style={{ backgroundColor: color }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+          style={{ backgroundColor: softColor, color }}
         >
           <Icon size={17} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            <p className="truncate text-[10px] font-medium uppercase tracking-wide text-slate-400">
               {data.badge}
             </p>
             {data.depthLabel && (
-              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+              <span className="rounded-full bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-slate-200">
                 {data.depthLabel}
               </span>
             )}
           </div>
-          <p className="mt-1 truncate text-sm font-bold text-slate-800" title={data.label}>
-            {truncate(data.label)}
+          <p className="mt-1.5 truncate text-sm font-medium leading-5 text-slate-800" title={data.label}>
+              {truncate(data.label, data.type === "output" ? 64 : 52)}
           </p>
           {data.caption && (
-            <p className="mt-1 truncate text-xs text-slate-500" title={data.caption}>
-              {truncate(data.caption, 42)}
+            <p className="mt-1 truncate text-xs font-normal leading-4 text-slate-500" title={data.caption}>
+              {truncate(data.caption, data.type === "output" ? 56 : 48)}
             </p>
           )}
         </div>
@@ -86,8 +101,8 @@ function GraphNode({ data }) {
 function LaneLabel({ data }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{data.caption}</p>
-      <p className="mt-1 text-sm font-bold text-slate-800">{data.label}</p>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{data.caption}</p>
+      <p className="mt-1 text-sm font-medium leading-5 text-slate-700">{data.label}</p>
     </div>
   );
 }
@@ -182,7 +197,7 @@ function buildGraph(queries, options) {
 
   const addEdge = (source, target, kind) => {
     const isQuery = kind === "query-reference";
-    const color = isQuery ? "#2563eb" : kind === "loads-to" ? "#d97706" : "#64748b";
+    const color = isQuery ? "#6384d8" : kind === "loads-to" ? "#d39a55" : "#8a98aa";
 
     edges.push({
       id: `${source}->${target}:${kind}`,
@@ -197,8 +212,9 @@ function buildGraph(queries, options) {
       data: { kind },
       style: {
         stroke: color,
-        strokeWidth: isQuery ? 2.6 : 2,
-        strokeDasharray: isQuery ? undefined : "5 5",
+        strokeWidth: isQuery ? 2.1 : 1.7,
+        strokeDasharray: isQuery ? undefined : "8 8",
+        opacity: 0.78,
       },
     });
     addAdjacency(source, target);
@@ -357,17 +373,17 @@ function Toolbar({
         {inspectorOpen ? <Eye size={14} /> : <EyeOff size={14} />}
         Inspector
       </ToggleButton>
-      <div className="flex flex-wrap items-center gap-3 px-2 text-xs font-medium text-slate-500">
+      <div className="flex flex-wrap items-center gap-3 px-2 text-xs font-normal text-slate-500">
         <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-5 rounded-full bg-blue-600" />
+          <span className="h-2 w-5 rounded-full bg-blue-400" />
           dependency
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-5 rounded-full bg-amber-600" />
+          <span className="h-2 w-5 rounded-full bg-amber-400" />
           output
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-5 rounded-full bg-slate-500" />
+          <span className="h-2 w-5 rounded-full bg-slate-400" />
           source
         </span>
       </div>
@@ -417,14 +433,17 @@ function Inspector({ selected, connected }) {
     <aside className="w-full shrink-0 rounded-xl border border-slate-200 bg-white p-4 lg:w-80">
       <div className="mb-4 flex items-start gap-3">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"
-          style={{ backgroundColor: getNodeColor(data.type, data.subtype) }}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+          style={{
+            backgroundColor: getNodeSoftColor(data.type, data.subtype),
+            color: getNodeColor(data.type, data.subtype),
+          }}
         >
           <Database size={17} />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{data.badge || data.type}</p>
-          <h3 className="mt-1 break-words text-sm font-bold text-slate-800">{data.label}</h3>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{data.badge || data.type}</p>
+          <h3 className="mt-1 break-words text-sm font-medium leading-5 text-slate-800">{data.label}</h3>
           {data.caption && <p className="mt-1 text-xs text-slate-500">{data.caption}</p>}
         </div>
       </div>
@@ -464,7 +483,7 @@ function Metric({ label, value }) {
   return (
     <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
       <span className="text-xs font-medium text-slate-500">{label}</span>
-      <span className="text-sm font-bold text-slate-800">{value}</span>
+      <span className="text-sm font-semibold text-slate-800">{value}</span>
     </div>
   );
 }
@@ -472,7 +491,7 @@ function Metric({ label, value }) {
 function DetailList({ title, items }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">{title}</p>
       <div className="space-y-1">
         {items.map((item) => (
           <p key={item} className="rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600">
@@ -523,7 +542,7 @@ export default function LineageDiagram({ queries }) {
             ...node.style,
             borderColor: selected ? getNodeColor(node.data.type, node.data.subtype) : node.style?.borderColor,
             boxShadow: selected
-              ? `0 0 0 3px ${getNodeColor(node.data.type, node.data.subtype)}33`
+              ? `0 0 0 3px ${getNodeColor(node.data.type, node.data.subtype)}26`
               : node.style?.boxShadow,
           },
         };
@@ -540,8 +559,8 @@ export default function LineageDiagram({ queries }) {
           animated: focused && edge.data?.kind === "query-reference",
           style: {
             ...edge.style,
-            opacity: focused ? 1 : 0.12,
-            strokeWidth: focused ? edge.style.strokeWidth : 1.4,
+            opacity: focused ? edge.style.opacity ?? 0.78 : 0.1,
+            strokeWidth: focused ? edge.style.strokeWidth : 1.2,
           },
         };
       }),
@@ -588,14 +607,20 @@ export default function LineageDiagram({ queries }) {
               <Background color="#cbd5e1" gap={18} />
               <Controls showInteractive={false} />
               <MiniMap
-                nodeColor={(node) => getNodeColor(node.data.type, node.data.subtype)}
+                position="bottom-right"
+                nodeColor={(node) => getMiniMapColor(node.data.type, node.data.subtype)}
+                nodeStrokeColor={(node) => getNodeColor(node.data.type, node.data.subtype)}
+                nodeBorderRadius={4}
+                maskColor="rgba(248, 250, 252, 0.72)"
                 pannable
                 zoomable
                 style={{
-                  width: 180,
-                  height: 120,
-                  border: "1px solid #dbe3ef",
-                  borderRadius: 10,
+                  width: 150,
+                  height: 96,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  background: "rgba(255, 255, 255, 0.92)",
+                  boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
                   overflow: "hidden",
                 }}
               />

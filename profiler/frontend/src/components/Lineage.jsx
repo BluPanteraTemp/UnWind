@@ -7,6 +7,7 @@ import {
   FileInput,
   GitBranch,
   Link2,
+  Search,
   Table2,
 } from "lucide-react";
 import LineageDiagram from "./LineageDiagram";
@@ -32,6 +33,36 @@ function Pill({ children, tone = "slate" }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${classes}`}>
       {children}
+    </span>
+  );
+}
+
+function StatusBadge({ loaded }) {
+  return (
+    <span
+      className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+        loaded
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-slate-200 bg-slate-50 text-slate-500"
+      }`}
+    >
+      {loaded ? "Loaded" : "Connection only"}
+    </span>
+  );
+}
+
+function CountMetric({ icon, value, label, tone = "slate" }) {
+  const classes = {
+    slate: "text-slate-500",
+    blue: "text-blue-600",
+    amber: "text-amber-600",
+    emerald: "text-emerald-600",
+  }[tone];
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${classes}`} title={label}>
+      {icon}
+      <span className="tabular-nums text-slate-700">{value}</span>
     </span>
   );
 }
@@ -81,30 +112,38 @@ function RiskList({ risks }) {
   );
 }
 
-function QueryCard({ query }) {
+function QueryRow({ query }) {
   const [open, setOpen] = useState(false);
+  const loaded = (query.outputs ?? []).length > 0;
+  const firstOutput = query.outputs?.[0]
+    ? `${query.outputs[0].sheetName}!${query.outputs[0].tableName}`
+    : "-";
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <article className="overflow-hidden bg-white shadow-sm transition hover:bg-slate-50/50">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left"
+        className="grid w-full grid-cols-[minmax(220px,1fr)_150px_110px_110px_90px_minmax(180px,0.8fr)_32px] items-center gap-4 px-4 py-3 text-left"
       >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-slate-900">{query.name}</h3>
-            {query.outputs?.length > 0 ? <Pill tone="emerald">Loaded</Pill> : <Pill>Connection only</Pill>}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Pill tone="blue">{query.dependencies?.length ?? 0} dependencies</Pill>
-            <Pill tone="amber">{query.transformations?.length ?? 0} transform types</Pill>
-            <Pill>{query.sources?.length ?? 0} sources</Pill>
-          </div>
+        <div className="min-w-0 pr-2">
+          <h3 className="truncate text-sm font-semibold text-slate-900" title={query.name}>
+            {query.name}
+          </h3>
+          <p className="mt-0.5 truncate text-xs text-slate-400">
+            {query.formulaPath || "Power Query"}
+          </p>
         </div>
+        <StatusBadge loaded={loaded} />
+        <CountMetric icon={<GitBranch size={14} />} value={query.dependencies?.length ?? 0} label="Dependencies" tone="blue" />
+        <CountMetric icon={<Database size={14} />} value={query.transformations?.length ?? 0} label="Transform types" tone="amber" />
+        <CountMetric icon={<FileInput size={14} />} value={query.sources?.length ?? 0} label="Sources" />
+        <p className="truncate text-sm text-slate-600" title={firstOutput}>
+          {firstOutput}
+        </p>
         <ChevronDown
           size={18}
-          className={`mt-1 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`justify-self-end text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -163,6 +202,36 @@ function QueryCard({ query }) {
   );
 }
 
+function QueryInventoryTable({ queries }) {
+  if (!queries.length) {
+    return (
+      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+        <Search size={24} className="mx-auto text-slate-300" />
+        <p className="mt-3 text-sm font-medium text-slate-700">No queries match the current filters</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="grid min-w-[980px] grid-cols-[minmax(220px,1fr)_150px_110px_110px_90px_minmax(180px,0.8fr)_32px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+        <span>Query</span>
+        <span>Status</span>
+        <span>Dependencies</span>
+        <span>Transforms</span>
+        <span>Sources</span>
+        <span>Output</span>
+        <span />
+      </div>
+      <div className="min-w-[980px] divide-y divide-slate-100">
+        {queries.map((query) => (
+          <QueryRow key={query.name} query={query} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function DetailBlock({ icon, title, items = [], empty }) {
   return (
     <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
@@ -189,14 +258,23 @@ export default function Lineage({ lineage }) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("list");
   const [showSummary, setShowSummary] = useState(false);
+  const [queryFilter, setQueryFilter] = useState("all");
   const queries = lineage?.queries ?? [];
   const summary = lineage?.summary ?? {};
   const filteredQueries = useMemo(() => {
     const term = search.trim().toLowerCase();
-
-    if (!term) return queries;
+    const matchesFilter = (query) => {
+      if (queryFilter === "loaded") return (query.outputs ?? []).length > 0;
+      if (queryFilter === "connection") return (query.outputs ?? []).length === 0;
+      if (queryFilter === "dependencies") return (query.dependencies ?? []).length > 0;
+      if (queryFilter === "sources") return (query.sources ?? []).length > 0;
+      return true;
+    };
 
     return queries.filter((query) => {
+      if (!matchesFilter(query)) return false;
+      if (!term) return true;
+
       const haystack = [
         query.name,
         ...(query.dependencies ?? []),
@@ -206,7 +284,7 @@ export default function Lineage({ lineage }) {
 
       return haystack.includes(term);
     });
-  }, [queries, search]);
+  }, [queries, queryFilter, search]);
 
   if (!lineage?.supported) {
     return (
@@ -266,15 +344,43 @@ export default function Lineage({ lineage }) {
                 Diagram
               </button>
             </div>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search queries, sources, outputs"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100 sm:w-72"
-            />
+            <div className="relative">
+              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search queries, sources, outputs"
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100 sm:w-80"
+              />
+            </div>
           </div>
         </div>
       </section>
+
+      {viewMode === "list" && (
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            ["all", "All"],
+            ["loaded", "Loaded"],
+            ["connection", "Connection only"],
+            ["dependencies", "Has dependencies"],
+            ["sources", "Has sources"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setQueryFilter(key)}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                queryFilter === key
+                  ? "border-blue-200 bg-blue-50 text-blue-700"
+                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {showSummary && (
         <div className="grid gap-3 md:grid-cols-5">
@@ -289,10 +395,8 @@ export default function Lineage({ lineage }) {
       {viewMode === "diagram" ? (
         <LineageDiagram queries={filteredQueries} />
       ) : (
-        <div className="space-y-3">
-          {filteredQueries.map((query) => (
-            <QueryCard key={query.name} query={query} />
-          ))}
+        <div className="overflow-x-auto">
+          <QueryInventoryTable queries={filteredQueries} />
         </div>
       )}
 
