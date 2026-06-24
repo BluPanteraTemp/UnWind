@@ -1,5 +1,4 @@
 // components/Charts.jsx
-import { useState } from "react";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -10,9 +9,17 @@ import {
 } from "lucide-react";
 
 const CHART_COLORS = {
-  primary: "#06B6D4",
-  secondary: "#22D3EE",
-  accent: "#0891B2",
+  primary: "#2563EB",
+  secondary: "#1D4ED8",
+  accent: "#1E40AF",
+};
+
+const HOVER_CURSOR = { fill: "#E2E8F0" };
+
+const getChartHeight = (type, rowCount) => {
+  if (type === "pie") return rowCount > 12 ? 560 : 460;
+  if (type === "horizontal") return Math.max(420, Math.min(1200, rowCount * 34 + 120));
+  return Math.max(420, Math.min(720, rowCount * 24 + 260));
 };
 
 const metricOptions = [
@@ -34,6 +41,8 @@ export default function Charts({
   setChartMetric,
   selectedChartColumns,
   setSelectedChartColumns,
+  chartTopCount,
+  setChartTopCount,
   showChartPicker,
   setShowChartPicker,
   chartColumnSearch,
@@ -50,8 +59,13 @@ export default function Charts({
     col.name.toLowerCase().includes(chartColumnSearch.toLowerCase())
   );
 
+  const normalizedTopCount = Math.max(
+    1,
+    Math.min(Number(chartTopCount) || 1, columns.length || 1)
+  );
+
   const selectTop = () =>
-    setSelectedChartColumns(columns.slice(0, 10).map((c) => c.name));
+    setSelectedChartColumns(columns.slice(0, normalizedTopCount).map((c) => c.name));
 
   const selectIssues = () =>
     setSelectedChartColumns(
@@ -79,6 +93,8 @@ export default function Charts({
   const hasInvalidData = invalidColumns.length > 0;
   const selectedMetricLabel =
     metricOptions.find((m) => m.key === chartMetric)?.label ?? "Metric";
+  const visibleChartData = chartType === "pie" ? pieValidData : chartData;
+  const chartHeight = getChartHeight(chartType, visibleChartData.length);
 
   // Chart type options
   const chartTypes = [
@@ -167,16 +183,31 @@ export default function Charts({
                     />
 
                     <div className="grid grid-cols-4 gap-2">
-                      <button onClick={selectTop} className="rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200">
-                        Top 10
-                      </button>
+                      <div className="col-span-2 flex min-w-0 rounded-md bg-slate-100 p-1">
+                        <input
+                          type="number"
+                          min="1"
+                          max={Math.max(columns.length, 1)}
+                          value={chartTopCount}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setChartTopCount(value === "" ? "" : Number(value));
+                          }}
+                          onBlur={() => setChartTopCount(normalizedTopCount)}
+                          className="min-w-0 flex-1 rounded bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:ring-1 focus:ring-blue-200"
+                          aria-label="Number of top columns"
+                        />
+                        <button onClick={selectTop} className="shrink-0 rounded px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200">
+                          Top {normalizedTopCount}
+                        </button>
+                      </div>
                       <button onClick={selectIssues} className="rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200">
                         Issues
                       </button>
                       <button onClick={() => setSelectedChartColumns(columns.map((c) => c.name))} className="rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200">
                         All
                       </button>
-                      <button onClick={() => setSelectedChartColumns([])} className="rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200">
+                      <button onClick={() => setSelectedChartColumns([])} className="col-span-4 rounded-md bg-slate-100 px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200">
                         None
                       </button>
                     </div>
@@ -200,6 +231,7 @@ export default function Charts({
                             />
                             <span className="min-w-0 flex-1 truncate font-medium text-slate-700">
                               {col.name}
+                              {col.isMandatory && <span className="ml-0.5 text-rose-500">*</span>}
                             </span>
                             <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
                               {col.quality.recommendationScorePercentage}%
@@ -236,7 +268,7 @@ export default function Charts({
             </div>
           </div>
 
-          <div className="h-[460px] w-full">
+          <div className="w-full">
             {chartType === 'pie' && hasInvalidData && (
               <div className="mb-3 rounded-lg bg-amber-50 border border-amber-200 p-3">
                 <div className="flex items-start gap-2">
@@ -256,14 +288,19 @@ export default function Charts({
               </div>
             )}
 
-            <div className="h-[540px]">
-              {chartType === "pie" ? (
-                renderChart(chartType, pieValidData, chartDataKey)
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  {renderChart(chartType, chartData, chartDataKey)}
-                </ResponsiveContainer>
-              )}
+            <div className="w-full overflow-x-auto overflow-y-visible pb-1">
+              <div
+                className={chartType === "pie" ? "min-w-0" : "min-w-[680px]"}
+                style={{ height: `${chartHeight}px` }}
+              >
+                {chartType === "pie" ? (
+                  renderChart(chartType, pieValidData, chartDataKey)
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    {renderChart(chartType, chartData, chartDataKey)}
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -295,6 +332,29 @@ function renderChart(type, data, dataKey) {
       tick={{ fontSize: 11, fill: "#64748B" }}
       axisLine={{ stroke: "#CBD5E1" }}
       tickLine={false}
+    />
+  );
+
+  const commonTooltip = (
+    <Tooltip
+      cursor={HOVER_CURSOR}
+      contentStyle={{
+        border: "1px solid #CBD5E1",
+        borderRadius: "0px",
+        background: "white",
+        fontSize: "14px",
+      }}
+      labelStyle={{
+        color: "#0F172A",
+        fontSize: "14px",
+        fontWeight: 600,
+        marginBottom: "6px",
+      }}
+      itemStyle={{
+        color: CHART_COLORS.primary,
+        fontSize: "14px",
+        fontWeight: 500,
+      }}
     />
   );
 
@@ -476,7 +536,7 @@ function renderChart(type, data, dataKey) {
           axisLine={{ stroke: "#CBD5E1" }}
           tickLine={false}
         />
-        <Tooltip />
+        {commonTooltip}
         <Bar dataKey={dataKey} fill={CHART_COLORS.primary} radius={[0, 6, 6, 0]} />
       </BarChart>
     );
@@ -488,7 +548,7 @@ function renderChart(type, data, dataKey) {
         {commonGrid}
         {commonXAxis}
         {commonYAxis}
-        <Tooltip />
+        {commonTooltip}
         <Line
           type="monotone"
           dataKey={dataKey}
@@ -507,12 +567,12 @@ function renderChart(type, data, dataKey) {
         {commonGrid}
         {commonXAxis}
         {commonYAxis}
-        <Tooltip />
+        {commonTooltip}
         <Area
           type="monotone"
           dataKey={dataKey}
-          stroke="#06B6D4"
-          fill="#06B6D4"
+          stroke={CHART_COLORS.primary}
+          fill={CHART_COLORS.primary}
           fillOpacity={0.15}
           strokeWidth={2}
         />
@@ -526,7 +586,7 @@ function renderChart(type, data, dataKey) {
       {commonGrid}
       {commonXAxis}
       {commonYAxis}
-      <Tooltip />
+      {commonTooltip}
       <Bar dataKey={dataKey} fill={CHART_COLORS.primary} radius={[6, 6, 0, 0]} />
     </BarChart>
   );

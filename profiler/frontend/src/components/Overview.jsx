@@ -37,6 +37,15 @@ function RecommendationIcon({ value }) {
 // Need to import these if not already available
 import { CheckCircle, XCircle } from "lucide-react";
 
+function FieldName({ name, isMandatory }) {
+  return (
+    <span>
+      {name}
+      {isMandatory && <span className="ml-0.5 text-rose-500">*</span>}
+    </span>
+  );
+}
+
 export default function Overview({ data, columns, setActiveTab, setSelectedColumn }) {
   const worstColumns = [...columns]
     .sort((a, b) => b.quality.recommendationScorePercentage - a.quality.recommendationScorePercentage)
@@ -77,7 +86,7 @@ export default function Overview({ data, columns, setActiveTab, setSelectedColum
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-800 group-hover:text-blue-700">
-                        {col.name}
+                        <FieldName name={col.name} isMandatory={col.isMandatory} />
                       </p>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">

@@ -53,3 +53,24 @@ h1, h2, h3, .font-black {
   color: #3730a3;
 }
 
+.unwind-thread-draw {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: unwind-thread-draw 0.42s ease-out 0.04s forwards, unwind-thread-breathe 2.4s ease-in-out 0.55s infinite;
+}
+
+@keyframes unwind-thread-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes unwind-thread-breathe {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(1px);
+  }
+}

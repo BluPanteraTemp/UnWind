@@ -1,10 +1,20 @@
 // components/FileUploadCenter.jsx
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Upload, FileSpreadsheet, Database, Sparkles, ArrowRight } from "lucide-react";
+import ThreadWordmark from "./ThreadWordmark";
 
-export default function FileUploadCenter({ onFileSelect, onUpload }) {
+export default function FileUploadCenter({
+  onFileSelect,
+  onUpload,
+  mandatoryFields = [],
+  mandatoryFieldOptions = [],
+  mandatoryFieldsLoading = false,
+  mandatoryFieldsError = "",
+  onToggleMandatoryField,
+}) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -28,10 +38,13 @@ export default function FileUploadCenter({ onFileSelect, onUpload }) {
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
+
     if (file) {
       setSelectedFile(file);
       onFileSelect(file);
     }
+
+    e.target.value = "";
   };
 
   const handleUpload = () => {
@@ -63,19 +76,9 @@ export default function FileUploadCenter({ onFileSelect, onUpload }) {
         <div className="max-w-4xl w-full mx-auto">
           {/* Logo/Brand */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center mb-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-teal-500 rounded-2xl blur-2xl opacity-30 animate-pulse" />
-                <div className="relative bg-gradient-to-br from-blue-600 to-teal-500 rounded-2xl p-4 shadow-2xl">
-                  <Database size={48} className="text-white" strokeWidth={1.5} />
-                </div>
-              </div>
-            </div>
-            <h1 className="text-5xl sm:text-6xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-800 to-teal-700 bg-clip-text text-transparent mb-4">
-              Data Profiler
-            </h1>
-            <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto">
-              Fast data quality review for CSV and Excel files
+            <ThreadWordmark />
+            <p className="text-sm sm:text-xl text-slate-600 max-w-2xl mx-auto">
+              Profile quality. Trace lineage.
             </p>
           </div>
 
@@ -112,6 +115,7 @@ export default function FileUploadCenter({ onFileSelect, onUpload }) {
                   {/* Browse Button */}
                   <label className="inline-flex cursor-pointer">
                     <input
+                      ref={fileInputRef}
                       type="file"
                       className="hidden"
                       accept=".csv,.xlsx,.xls"
@@ -159,12 +163,75 @@ export default function FileUploadCenter({ onFileSelect, onUpload }) {
                     </p>
                   </div>
 
+                  <div className="mx-auto mb-6 max-w-2xl rounded-xl border border-rose-100 bg-white/70 p-4 text-left">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-800">
+                          Mandatory fields
+                        </h4>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          Selected fields are marked with * and checked for blanks.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600">
+                        {mandatoryFields.length} selected
+                      </span>
+                    </div>
+
+                    {mandatoryFieldsLoading && (
+                      <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
+                        Reading columns...
+                      </p>
+                    )}
+
+                    {mandatoryFieldsError && (
+                      <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">
+                        {mandatoryFieldsError}
+                      </p>
+                    )}
+
+                    {!mandatoryFieldsLoading && !mandatoryFieldsError && mandatoryFieldOptions.length > 0 && (
+                      <div className="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+                        {mandatoryFieldOptions.map((name) => {
+                          const checked = mandatoryFields.includes(name);
+
+                          return (
+                            <label
+                              key={name}
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                                checked
+                                  ? "border-rose-200 bg-rose-50 text-slate-800"
+                                  : "border-slate-100 bg-white/70 text-slate-600 hover:border-slate-200"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => onToggleMandatoryField?.(name)}
+                                className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-1 focus:ring-rose-200"
+                              />
+                              <span className="min-w-0 flex-1 truncate">
+                                {name}
+                                {checked && <span className="ml-0.5 text-rose-500">*</span>}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex gap-3 justify-center">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileSelect}
+                    />
                     <button
-                      onClick={() => {
-                        setSelectedFile(null);
-                        onFileSelect(null);
-                      }}
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
                       className="px-6 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
                       Choose different file

@@ -1,23 +1,25 @@
 // components/Columns.jsx
 import { useState } from "react";
 import {
-  AlertTriangle, CheckCircle, XCircle, X, BarChart3
+  AlertTriangle, CheckCircle, XCircle, X, BarChart3, ChevronDown
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid
 } from "recharts";
 
+const HOVER_CURSOR = { fill: "#E2E8F0" };
+
 // Reusable components needed for Columns
 function RecommendationBadge({ value }) {
   const config = {
-    keep: [<CheckCircle size={13} />, "Keep", "bg-emerald-50 text-emerald-700 ring-emerald-200"],
-    review: [<AlertTriangle size={13} />, "Review", "bg-amber-50 text-amber-700 ring-amber-200"],
-    discard: [<XCircle size={13} />, "Discard", "bg-red-50 text-red-700 ring-red-200"]
+    keep: [<CheckCircle size={14} />, "Keep", "text-emerald-700"],
+    review: [<AlertTriangle size={14} />, "Review", "text-amber-700"],
+    discard: [<XCircle size={14} />, "Discard", "text-red-700"]
   };
   const item = config[value] ?? config.review;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ring-1 ${item[2]}`}>
+    <span className={`inline-flex items-center gap-1 text-sm font-medium ${item[2]}`}>
       {item[0]}{item[1]}
     </span>
   );
@@ -43,6 +45,99 @@ function formatLabel(value) {
   return value.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
 }
 
+function FieldName({ name, isMandatory }) {
+  return (
+    <span>
+      {name}
+      {isMandatory && <span className="ml-0.5 text-rose-500">*</span>}
+    </span>
+  );
+}
+
+function formatExampleValue(value) {
+  if (value === null || value === undefined || value === "") return "(blank)";
+  return String(value);
+}
+
+function IssueExamples({ examples = [], validExample = null }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!examples.length) return null;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setIsOpen((value) => !value)}
+        className="mb-2 flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span>
+          <span className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Example rows
+          </span>
+          <span className="mt-0.5 block text-xs text-slate-500">
+            {validExample ? "1 valid example" : "No valid example"}
+            {examples.length > 0 && ` · ${examples.length} issue row${examples.length !== 1 ? "s" : ""}`}
+          </span>
+        </span>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-slate-400 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="space-y-3">
+          {validExample && (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 p-3">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-emerald-800">
+                  Valid example
+                </p>
+                <span className="text-xs font-medium text-emerald-700">
+                  Row {validExample.rowNumber}
+                </span>
+              </div>
+              <p className="truncate rounded-md bg-white/70 px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-emerald-100">
+                {formatExampleValue(validExample.value)}
+              </p>
+            </div>
+          )}
+
+          {examples.length > 0 && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60">
+              <div className="grid grid-cols-[58px_minmax(0,1fr)_minmax(0,1fr)] gap-2 border-b border-slate-200 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <span>Row</span>
+                <span>Issue</span>
+                <span>Value</span>
+              </div>
+
+              <div className="divide-y divide-slate-200">
+                {examples.map((example) => (
+                  <div
+                    key={`${example.rowNumber}-${example.issueType}-${formatExampleValue(example.value)}`}
+                    className="grid grid-cols-[58px_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-3 py-2 text-xs"
+                  >
+                    <span className="font-semibold text-slate-700">
+                      {example.rowNumber}
+                    </span>
+                    <span className="truncate text-amber-700" title={example.issueType}>
+                      {example.issueType}
+                    </span>
+                    <span className="truncate text-slate-600" title={formatExampleValue(example.value)}>
+                      {formatExampleValue(example.value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ColumnInspector({ column }) {
   const [showCharts, setShowCharts] = useState(false);
 
@@ -64,7 +159,7 @@ function ColumnInspector({ column }) {
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold text-slate-800 truncate">
-                {column.name}
+                <FieldName name={column.name} isMandatory={column.isMandatory} />
               </h2>
               <div className="mt-1 flex items-center gap-2">
                 <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
@@ -111,6 +206,11 @@ function ColumnInspector({ column }) {
             </div>
           )}
 
+          <IssueExamples
+            examples={column.issueExamples ?? []}
+            validExample={column.validExample}
+          />
+
           {/* Statistics */}
           {statEntries.length > 0 && (
             <div>
@@ -145,7 +245,9 @@ function ColumnInspector({ column }) {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">{column.name}</h2>
+                <h2 className="text-xl font-bold text-slate-800">
+                  <FieldName name={column.name} isMandatory={column.isMandatory} />
+                </h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
@@ -190,7 +292,7 @@ function ColumnInspector({ column }) {
                         />
                         <Tooltip
                           contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white' }}
-                          cursor={{ fill: '#F1F5F9' }}
+                          cursor={HOVER_CURSOR}
                         />
                         <Bar dataKey="count" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
                       </BarChart>
@@ -229,7 +331,7 @@ function ColumnInspector({ column }) {
                         />
                         <Tooltip
                           contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white' }}
-                          cursor={{ fill: '#F1F5F9' }}
+                          cursor={HOVER_CURSOR}
                         />
                         <Bar dataKey="count" fill="#0284C7" radius={[0, 6, 6, 0]} />
                       </BarChart>
@@ -252,8 +354,22 @@ export default function Columns({
   setSelectedColumn, 
   tableFilters, 
   setTableFilters, 
-  profileTypes 
+  profileTypes,
+  issueTypes = [],
 }) {
+  const toggleIgnoredIssue = (issue) => {
+    setTableFilters((prev) => {
+      const ignoredIssues = prev.ignoredIssues ?? [];
+
+      return {
+        ...prev,
+        ignoredIssues: ignoredIssues.includes(issue)
+          ? ignoredIssues.filter((item) => item !== issue)
+          : [...ignoredIssues, issue],
+      };
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
       {/* Column overview table */}
@@ -268,7 +384,7 @@ export default function Columns({
               </p>
             </div>
             <button
-              onClick={() => setTableFilters({ type: "all", minBlank: "", minUnique: "", search: "" })}
+              onClick={() => setTableFilters({ type: "all", mandatory: "all", minBlank: "", minUnique: "", search: "", ignoredIssues: [] })}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
             >
               <X size={13} />
@@ -277,7 +393,7 @@ export default function Columns({
           </div>
 
           {/* Filters row */}
-          <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+          <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-5">
             <div className="relative">
               <input
                 value={tableFilters.search}
@@ -295,6 +411,15 @@ export default function Columns({
                 <option key={t} value={t}>{t === "all" ? "All types" : t}</option>
               ))}
             </select>
+            <select
+              value={tableFilters.mandatory}
+              onChange={(e) => setTableFilters((p) => ({ ...p, mandatory: e.target.value }))}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100"
+            >
+              <option value="all">All fields</option>
+              <option value="mandatory">Mandatory only</option>
+              <option value="optional">Optional only</option>
+            </select>
             <input
               type="number"
               value={tableFilters.minBlank}
@@ -310,6 +435,46 @@ export default function Columns({
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-100"
             />
           </div>
+
+          {issueTypes.length > 0 && (
+            <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Ignored issues
+                </p>
+                {(tableFilters.ignoredIssues ?? []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTableFilters((prev) => ({ ...prev, ignoredIssues: [] }))}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    Clear ignored
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {issueTypes.map((issue) => {
+                  const ignored = (tableFilters.ignoredIssues ?? []).includes(issue);
+
+                  return (
+                    <button
+                      key={issue}
+                      type="button"
+                      onClick={() => toggleIgnoredIssue(issue)}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${ignored
+                        ? "border-amber-300 bg-amber-50 text-amber-700"
+                        : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                        }`}
+                    >
+                      {ignored ? "Ignoring " : ""}
+                      {issue}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -337,7 +502,9 @@ export default function Columns({
                       : "hover:bg-slate-50"
                   }`}
                 >
-                  <td className="px-4 py-3 font-medium text-slate-800">{col.name}</td>
+                  <td className="px-4 py-3 font-medium text-slate-800">
+                    <FieldName name={col.name} isMandatory={col.isMandatory} />
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {col.profileType}
