@@ -371,7 +371,7 @@ export default function Columns({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       {/* Column overview table */}
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         {/* Header */}

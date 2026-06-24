@@ -5,6 +5,28 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+html {
+  background: #f5f7fa;
+}
+
+body {
+  min-width: 320px;
+}
+
+#root {
+  --app-density-scale: 0.75;
+  zoom: var(--app-density-scale);
+}
+
+@supports not (zoom: 1) {
+  #root {
+    width: calc(100% / var(--app-density-scale));
+    min-height: calc(100vh / var(--app-density-scale));
+    transform: scale(var(--app-density-scale));
+    transform-origin: top left;
+  }
+}
+
 /* Increase font-weight boldness globally */
 h1, h2, h3, .font-black {
   letter-spacing: -0.02em; /* Tighter tracking for headings */

@@ -9,7 +9,7 @@ const variants = {
   },
 
   header: {
-    outer: "relative h-[58px] w-[145px] overflow-visible",
+    outer: "relative h-[58px] w-[90px] overflow-visible",
     frame: "relative w-[420px] origin-top-left scale-[0.31] px-4 pb-7 pt-2",
     textWrap: "relative text-center",
     text: "text-7xl font-light tracking-normal",

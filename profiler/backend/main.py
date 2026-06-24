@@ -46,7 +46,7 @@ app.add_middleware(
     allow_origins=[
         "https://data-profiler-mvp.vercel.app",
     ],
-    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
+    allow_origin_regex=r"^(http://(localhost|127\.0\.0\.1):\d+|https://.*\.trycloudflare\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
