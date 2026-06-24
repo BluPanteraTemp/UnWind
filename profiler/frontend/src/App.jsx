@@ -334,7 +334,7 @@ async function downloadProfileWorkbook({ data, columns, matrixData }) {
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = "UnWind";
+  workbook.creator = "Data Profiler";
   workbook.created = new Date();
 
   buildProfileSummarySheet(workbook, columns);

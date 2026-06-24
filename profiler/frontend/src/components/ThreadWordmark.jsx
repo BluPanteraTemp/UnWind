@@ -4,7 +4,7 @@ const variants = {
     frame: "relative w-full px-4 pb-7 pt-2",
     textWrap: "relative text-center",
     text: "text-6xl font-light tracking-normal sm:text-7xl",
-    svg: "absolute -bottom-1 -left-4 h-16 w-[calc(100%+2rem)] overflow-visible px-8",
+    svg: "absolute -bottom-4 -left-8 h-16 w-[calc(120%+0rem)] overflow-visible px-8",
     scale: "",
   },
 
@@ -13,7 +13,7 @@ const variants = {
     frame: "relative w-[420px] origin-top-left scale-[0.31] px-4 pb-7 pt-2",
     textWrap: "relative text-center",
     text: "text-7xl font-light tracking-normal",
-    svg: "absolute -bottom-1 -left-4 h-16 w-[calc(100%+2rem)] overflow-visible px-8",
+    svg: "absolute -bottom-4 -left-8 h-16 w-[calc(120%+0rem)] overflow-visible px-8",
     scale: "",
   },
 };
@@ -29,7 +29,7 @@ export default function ThreadWordmark({ variant = "home" }) {
         <div className={styles.textWrap}>
           <WordmarkTag className={`${styles.text} text-slate-900`}>
             <span className="bg-gradient-to-r from-blue-700 via-cyan-600 to-teal-500 bg-clip-text text-transparent">
-              UnWind
+              Data Profiler
             </span>
           </WordmarkTag>
         </div>
