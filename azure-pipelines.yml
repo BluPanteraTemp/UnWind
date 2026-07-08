@@ -18,3 +18,10 @@ steps:
     npm run build
   workingDirectory: 'profiler/frontend'
   displayName: 'Install and build frontend'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'profiler/frontend/dist'
+    ArtifactName: 'frontend-dist'
+    publishLocation: 'Container'
+  displayName: 'Publish frontend artifact'
