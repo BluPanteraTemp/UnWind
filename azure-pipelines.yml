@@ -1,16 +1,15 @@
-# Node.js with React
-# Build the Vite frontend from its project directory.
+# Build and deploy the Data Profiler app to the Debian Docker host.
 
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: BPServer
 
 steps:
-- task: NodeTool@0
+- task: UseNode@1
   inputs:
-    versionSpec: '20.x'
+    version: '20.x'
   displayName: 'Install Node.js'
 
 - script: |
@@ -18,10 +17,52 @@ steps:
     npm run build
   workingDirectory: 'profiler/frontend'
   displayName: 'Install and build frontend'
+  env:
+    VITE_API_BASE_URL: /api
 
-- task: PublishBuildArtifacts@1
+- task: CopyFilesOverSSH@0
   inputs:
-    PathtoPublish: 'profiler/frontend/dist'
-    ArtifactName: 'frontend-dist'
-    publishLocation: 'Container'
-  displayName: 'Publish frontend artifact'
+    sshEndpoint: 'DataProfiler SSH'
+    sourceFolder: 'profiler/backend'
+    contents: |
+      Dockerfile
+      main.py
+      requirements.txt
+      services/**
+    targetFolder: '/home/admin/api'
+    cleanTargetFolder: true
+    readyTimeout: 20000
+  displayName: 'Copy backend to server'
+
+- task: CopyFilesOverSSH@0
+  inputs:
+    sshEndpoint: 'DataProfiler SSH'
+    sourceFolder: 'profiler/frontend'
+    contents: |
+      Dockerfile
+      nginx.conf
+      dist/**
+    targetFolder: '/home/admin/frontend'
+    cleanTargetFolder: true
+    readyTimeout: 20000
+  displayName: 'Copy frontend to server'
+
+- task: CopyFilesOverSSH@0
+  inputs:
+    sshEndpoint: 'DataProfiler SSH'
+    sourceFolder: 'deploy'
+    contents: 'docker-compose.yml'
+    targetFolder: '/home/admin'
+    cleanTargetFolder: false
+    readyTimeout: 20000
+  displayName: 'Copy Docker Compose file'
+
+- task: SSH@0
+  inputs:
+    sshEndpoint: 'DataProfiler SSH'
+    runOptions: 'commands'
+    commands: |
+      sudo docker compose -f /home/admin/docker-compose.yml up -d --build --remove-orphans
+      sudo docker ps
+    readyTimeout: 20000
+  displayName: 'Build and restart Docker containers'
