@@ -1,7 +1,5 @@
 # Node.js with React
-# Build a Node.js project that uses React.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+# Build the Vite frontend from its project directory.
 
 trigger:
 - main
@@ -16,6 +14,7 @@ steps:
   displayName: 'Install Node.js'
 
 - script: |
-    npm install
+    npm ci
     npm run build
-  displayName: 'npm install and build'
+  workingDirectory: 'profiler/frontend'
+  displayName: 'Install and build frontend'
