@@ -65,4 +65,5 @@ steps:
       sudo docker compose -f /home/admin/docker-compose.yml up -d --build --remove-orphans
       sudo docker ps
     readyTimeout: 20000
+    failOnStdErr: false
   displayName: 'Build and restart Docker containers'
