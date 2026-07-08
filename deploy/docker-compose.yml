@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: ./api
+    container_name: data-profiler-backend
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: data-profiler-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
